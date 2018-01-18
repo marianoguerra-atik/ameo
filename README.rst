@@ -27,6 +27,18 @@ A riak_core application
     redis-cli get foo
     > (nil)
 
+Publish subscribe::
+
+    redis-cli subscribe bar
+    > Reading messages... (press Ctrl-C to quit)
+
+    redis-cli publish bar asd
+    > (integer) 1
+
+
+On the subscribe shell::
+
+    > asd
 
 Build
 -----
