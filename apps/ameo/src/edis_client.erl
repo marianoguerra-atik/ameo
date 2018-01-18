@@ -29,7 +29,7 @@
                 buffer = <<>>     :: binary(),
                 command_runner    :: undefined | pid()
                }).
--opaque state() :: #state{}.
+-type state() :: #state{}.
 
 %% ====================================================================
 %% External functions
@@ -71,7 +71,8 @@ socket({socket_ready, Socket}, State) ->
   lager:info("New Client: ~p ~n", [PeerPort]),
   ok = inet:setopts(Socket, [{active, once}, {packet, line}, binary]),
   _ = erlang:process_flag(trap_exit, true), %% We want to know even if it stops normally
-  {ok, CmdRunner} = edis_command_runner:start_link(Socket),
+  %{ok, CmdRunner} = edis_command_runner:start_link(Socket),
+  CmdRunner = nil,
   {next_state, command_start, State#state{socket         = Socket,
                                           peerport       = PeerPort,
                                           command_runner = CmdRunner}, hibernate};
@@ -97,7 +98,8 @@ command_start({data, OldCmd}, State) ->
   lager:debug("Old protocol command ~p (~p args)~n",[Command, length(Args)]),
   case edis_command_runner:last_arg(edis_util:upper(Command)) of
     inlined ->
-      ok = edis_command_runner:run(State#state.command_runner, edis_util:upper(Command), Args),
+      %ok = edis_command_runner:run(State#state.command_runner, edis_util:upper(Command), Args),
+      lager:info("Run Command: ~p ~p", [edis_util:upper(Command), Args]),
       {next_state, command_start, State, hibernate};
     safe ->
       case lists:reverse(Args) of
@@ -117,7 +119,8 @@ command_start({data, OldCmd}, State) ->
                                                  next_arg_size  = ArgSize}}
           end;
         [] ->
-          ok = edis_command_runner:run(State#state.command_runner, edis_util:upper(Command), []),
+          %ok = edis_command_runner:run(State#state.command_runner, edis_util:upper(Command), []),
+          run_command(edis_util:upper(Command), [], State),
           {next_state, command_start, State, hibernate}
       end
   end;
@@ -150,7 +153,8 @@ arg_size(Event, State) ->
 command_name({data, Data}, State = #state{next_arg_size = Size, missing_args = 1}) ->
   <<Command:Size/binary, _Rest/binary>> = Data,
   lager:debug("Command: ~p ~n", [Command]),
-  ok = edis_command_runner:run(State#state.command_runner, edis_util:upper(Command), []),
+  %ok = edis_command_runner:run(State#state.command_runner, edis_util:upper(Command), []),
+  run_command(edis_util:upper(Command), [], State),
   {next_state, command_start, State, hibernate};
 command_name({data, Data}, State = #state{next_arg_size = Size, missing_args = MissingArgs}) ->
   <<Command:Size/binary, _Rest/binary>> = Data,
@@ -168,9 +172,12 @@ argument({data, Data}, State = #state{buffer        = Buffer,
     <<Argument:Size/binary, _Rest/binary>> ->
       case State#state.missing_args of
         1 ->
-          ok = edis_command_runner:run(State#state.command_runner,
-                                       edis_util:upper(State#state.command_name),
-                                       lists:reverse([Argument|State#state.args])),
+          %ok = edis_command_runner:run(State#state.command_runner,
+          %                             edis_util:upper(State#state.command_name),
+          %                             lists:reverse([Argument|State#state.args])),
+          run_command(edis_util:upper(State#state.command_name),
+                      lists:reverse([Argument|State#state.args]),
+                      State),
           {next_state, command_start, State, hibernate};
         MissingArgs ->
           {next_state, arg_size, State#state{missing_args = MissingArgs - 1,
@@ -217,12 +224,12 @@ handle_info(_Info, StateName, StateData) ->
 %% @hidden
 -spec terminate(term(), atom(), state()) -> ok.
 terminate(normal, _StateName, #state{socket = Socket, command_runner = CmdRunner}) ->
-  edis_command_runner:stop(CmdRunner),
+  %edis_command_runner:stop(CmdRunner),
   (catch gen_tcp:close(Socket)),
   ok;
 terminate(Reason, _StateName, #state{socket = Socket, command_runner = CmdRunner}) ->
-  debug:warn("Terminating client: ~p~n", [Reason]),
-  edis_command_runner:stop(CmdRunner),
+  lager:warning("Terminating client: ~p~n", [Reason]),
+  %edis_command_runner:stop(CmdRunner),
   (catch gen_tcp:close(Socket)),
   ok.
 
@@ -230,3 +237,40 @@ terminate(Reason, _StateName, #state{socket = Socket, command_runner = CmdRunner
 -spec code_change(term(), atom(), state(), any()) -> {ok, atom(), state()}.
 code_change(_OldVsn, StateName, StateData, _Extra) ->
     {ok, StateName, StateData}.
+
+%% private
+
+run_command(Command, Args, State) ->
+    Reply = ameo:run_command(Command, Args),
+    SendRes = case Reply of
+        {ok, _Partition} ->
+                      send_ok(State);
+        {ok, _Partition, nil} ->
+                      send_nil(State);
+        {ok, _Partition, Value} ->
+                      send_value(Value, State);
+        {error, _Partition, {_Code, Reason, _Details}} ->
+                      send_error(Reason, State)
+    end,
+    lager:info("~p ~p", [Reply, SendRes]),
+    Reply.
+
+send_ok(State) ->
+    send_string("OK", State).
+
+send_value(V, State) when is_list(V); is_binary(V) ->
+    send(["+", V], State);
+send_value(V, State) when is_integer(V) ->
+    send([":", integer_to_list(V)], State).
+
+send_string(V, State) ->
+    send(["+", V], State).
+
+send_nil(State) ->
+    send("$-1", State).
+
+send_error(V, State) ->
+    send(["-ERR ", V], State).
+
+send(Message, State) ->
+    gen_tcp:send(State#state.socket, [Message, "\r\n"]).

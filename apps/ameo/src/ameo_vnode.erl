@@ -22,18 +22,29 @@
              start_vnode/1
              ]).
 
--record(state, {partition}).
+-record(state, {partition, table_id, table_name}).
 
 %% API
 start_vnode(I) ->
     riak_core_vnode_master:get_vnode_pid(I, ?MODULE).
 
 init([Partition]) ->
-    {ok, #state { partition=Partition }}.
+    TableName = list_to_atom("ameo_" ++ integer_to_list(Partition)),
+    TableId = ets:new(TableName, [set, {write_concurrency, false},
+                                  {read_concurrency, false}]),
+
+    {ok, #state{partition=Partition, table_id=TableId,
+                table_name=TableName}}.
 
 %% Sample command: respond to a ping
 handle_command(ping, _Sender, State) ->
     {reply, {pong, State#state.partition}, State};
+
+handle_command({cmd, Command, Args}, _Sender, State) ->
+    Result = run_cmd(Command, Args, State),
+    lager:info("~p ~p -> ~p", [Command, Args, Result]),
+    {reply, Result, State};
+
 handle_command(Message, _Sender, State) ->
     lager:warning("unhandled_command ~p", [Message]),
     {noreply, State}.
@@ -76,3 +87,23 @@ handle_exit(_Pid, _Reason, State) ->
 
 terminate(_Reason, _State) ->
     ok.
+
+%% private
+run_cmd(<<"SET">>, [Key, Value], #state{table_id=TableId, partition=Partition}) ->
+    ets:insert(TableId, {Key, Value}),
+    {ok, Partition};
+run_cmd(<<"GET">>, [Key], #state{table_id=TableId, partition=Partition}) ->
+    case ets:lookup(TableId, Key) of
+        [] ->
+            {ok, Partition, nil};
+        [{_, Value}] ->
+            {ok, Partition, Value}
+    end;
+run_cmd(<<"DEL">>, [Key], #state{table_id=TableId, partition=Partition}) ->
+    case ets:lookup(TableId, Key) of
+        [] ->
+            {ok, Partition, 0};
+        [_Value] ->
+            true = ets:delete(TableId, Key),
+            {ok, Partition, 1}
+    end.

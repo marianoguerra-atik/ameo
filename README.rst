@@ -3,6 +3,10 @@ ameo
 
 A riak_core application
 
+::
+
+    apt install redis-tools
+
 Build
 -----
 
