@@ -36,7 +36,8 @@ reload() ->
 -spec init([]) -> {ok, {{one_for_one, 5, 10}, [supervisor:child_spec()]}}.
 init([]) ->
   lager:info("Listener supervisor initialized~n", []),
-  {MinPort, MaxPort} = edis_config:get(listener_port_range),
+  MinPort = application:get_env(ameo, port_from, 6379),
+  MaxPort = application:get_env(ameo, port_to, 6379),
   Listeners =
     [{list_to_atom("edis-listener-" ++ integer_to_list(I)),
       {edis_listener, start_link, [I]}, permanent, brutal_kill, worker, [edis_listener]}
