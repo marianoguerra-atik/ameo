@@ -7,6 +7,27 @@ A riak_core application
 
     apt install redis-tools
 
+::
+
+    redis-cli get foo
+    > (nil)
+
+    redis-cli set foo 42
+    > OK
+
+    redis-cli get foo
+    > 42
+
+    redis-cli del foo
+    > (integer) 1
+
+    redis-cli del foo
+    > (integer) 0
+
+    redis-cli get foo
+    > (nil)
+
+
 Build
 -----
 
