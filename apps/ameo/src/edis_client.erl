@@ -218,6 +218,9 @@ handle_info({tcp_closed, Socket}, _StateName, #state{socket = Socket,
                                                      peerport = PeerPort} = StateData) ->
   lager:debug("Disconnected ~p.~n", [PeerPort]),
   {stop, normal, StateData};
+handle_info({pubsub_msg, Msg}, StateName, StateData) ->
+  send_value(Msg, StateData),
+  {next_state, StateName, StateData};
 handle_info(_Info, StateName, StateData) ->
   {next_state, StateName, StateData}.
 
@@ -240,6 +243,8 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 
 %% private
 
+run_command(<<"COMMAND">>, [], State) ->
+    send("*0\r\n", State);
 run_command(Command, Args, State) ->
     Reply = ameo:run_command(Command, Args),
     SendRes = case Reply of
@@ -249,6 +254,7 @@ run_command(Command, Args, State) ->
                       send_nil(State);
         {ok, _Partition, Value} ->
                       send_value(Value, State);
+        no_reply -> ok;
         {error, _Partition, {_Code, Reason, _Details}} ->
                       send_error(Reason, State)
     end,

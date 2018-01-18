@@ -18,11 +18,13 @@
          handle_coverage/4,
          handle_exit/3]).
 
+-export([handle_info/2]).
+
 -ignore_xref([
              start_vnode/1
              ]).
 
--record(state, {partition, table_id, table_name}).
+-record(state, {partition, table_id, table_name, topic_table}).
 
 %% API
 start_vnode(I) ->
@@ -32,16 +34,18 @@ init([Partition]) ->
     TableName = list_to_atom("ameo_" ++ integer_to_list(Partition)),
     TableId = ets:new(TableName, [set, {write_concurrency, false},
                                   {read_concurrency, false}]),
+	TopicTableId = ets:new(TableName, [set, {write_concurrency, false},
+									   {read_concurrency, false}]),
 
     {ok, #state{partition=Partition, table_id=TableId,
-                table_name=TableName}}.
+                table_name=TableName, topic_table=TopicTableId}}.
 
 %% Sample command: respond to a ping
 handle_command(ping, _Sender, State) ->
     {reply, {pong, State#state.partition}, State};
 
-handle_command({cmd, Command, Args}, _Sender, State) ->
-    Result = run_cmd(Command, Args, State),
+handle_command({cmd, Command, Args, Pid}, _Sender, State) ->
+    Result = run_cmd(Command, Args, Pid, State),
     lager:info("~p ~p -> ~p", [Command, Args, Result]),
     {reply, Result, State};
 
@@ -85,25 +89,73 @@ handle_coverage(_Req, _KeySpaces, _Sender, State) ->
 handle_exit(_Pid, _Reason, State) ->
     {noreply, State}.
 
+handle_info({'DOWN', _Ref, process, Pid, Reason}, State) ->
+    lager:info("Pid down, unsubscribing ~p ~p", [Pid, Reason]),
+    unsubscribe_pid(Pid, State),
+    {ok, State};
+handle_info({gen_event_EXIT, {ameo_channel, _Pid}, _Reason}, State) ->
+    {ok, State};
+handle_info(Info, State) ->
+    lager:info("Got vnode info ~p", [Info]),
+    {ok, State}.
+
 terminate(_Reason, _State) ->
     ok.
 
 %% private
-run_cmd(<<"SET">>, [Key, Value], #state{table_id=TableId, partition=Partition}) ->
+run_cmd(<<"SET">>, [Key, Value], _Pid,
+        #state{table_id=TableId, partition=Partition}) ->
     ets:insert(TableId, {Key, Value}),
     {ok, Partition};
-run_cmd(<<"GET">>, [Key], #state{table_id=TableId, partition=Partition}) ->
+run_cmd(<<"GET">>, [Key], _Pid,
+        #state{table_id=TableId, partition=Partition}) ->
     case ets:lookup(TableId, Key) of
         [] ->
             {ok, Partition, nil};
         [{_, Value}] ->
             {ok, Partition, Value}
     end;
-run_cmd(<<"DEL">>, [Key], #state{table_id=TableId, partition=Partition}) ->
+run_cmd(<<"DEL">>, [Key], _Pid,
+        #state{table_id=TableId, partition=Partition}) ->
     case ets:lookup(TableId, Key) of
         [] ->
             {ok, Partition, 0};
         [_Value] ->
             true = ets:delete(TableId, Key),
             {ok, Partition, 1}
-    end.
+    end;
+run_cmd(<<"SUBSCRIBE">>, [Topic], Pid, #state{topic_table=TableId}) ->
+	Channel = case ets:lookup(TableId, Topic) of
+				  [] ->
+					  {ok, Ch} = ameo_channel:start_link(),
+                      ets:insert(TableId, {Topic, Ch}),
+                      lager:info("New channel for topic ~p ~p", [Topic, Ch]),
+					  Ch;
+				  [{_, Ch}] ->
+					  Ch
+			  end,
+    lager:info("Subscribe ~p ~p", [Topic, Pid]),
+    erlang:monitor(process, Pid),
+    ameo_channel:subscribe(Channel, Pid),
+    no_reply;
+run_cmd(<<"PUBLISH">>, [Topic, Value], _Pid,
+        #state{topic_table=TableId, partition=Partition}) ->
+    SubscriberCount = case ets:lookup(TableId, Topic) of
+                          [] ->
+                              0;
+                          [{_, Channel}] ->
+                              ameo_channel:send(Channel, {pubsub_msg, Value}),
+                              ameo_channel:subscriber_count(Channel)
+                      end,
+    lager:info("Publish to topic ~p with ~p subscribers", [Topic, SubscriberCount]),
+    {ok, Partition, SubscriberCount}.
+
+unsubscribe_pid(Pid, #state{topic_table=TableId}) ->
+    % FIXME: ineficient yet easy solution
+    ets:foldl(fun ({Topic, Channel}, AccIn) ->
+                      lager:info("FIXME: Blindly unsubscribing ~p from ~p just in case", [Pid, Topic]),
+                      ameo_channel:unsubscribe(Channel, Pid),
+                      AccIn
+              end,
+              unused_accum_state,
+              TableId).

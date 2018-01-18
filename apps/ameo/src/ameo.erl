@@ -16,7 +16,8 @@ ping() ->
 run_command(Command, Args) ->
     Key = key_for_command(Command, Args),
     Bucket = <<"default">>,
-    send_to_one({Bucket, Key}, {cmd, Command, Args}).
+    Pid = self(),
+    send_to_one({Bucket, Key}, {cmd, Command, Args, Pid}).
 
 % private functions
 
@@ -24,6 +25,10 @@ key_for_command(<<"SET">>, [Key, _]) ->
     Key;
 key_for_command(<<"GET">>, [Key]) ->
     Key;
+key_for_command(<<"SUBSCRIBE">>, [Topic]) ->
+    Topic;
+key_for_command(<<"PUBLISH">>, [Topic, _]) ->
+    Topic;
 key_for_command(<<"DEL">>, [Key]) ->
     Key.
 
