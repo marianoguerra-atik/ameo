@@ -1,5 +1,5 @@
 ameo
-===========
+====
 
 A riak_core application
 
@@ -35,10 +35,17 @@ Publish subscribe::
     redis-cli publish bar asd
     > (integer) 1
 
-
 On the subscribe shell::
 
     > asd
+
+In the cluster::
+
+    redis-cli -p 6479 subscribe bar
+
+    redis-cli -p 6579 subscribe bar
+
+    redis-cli publish bar hi
 
 Build
 -----
