@@ -30,7 +30,9 @@ key_for_command(<<"SUBSCRIBE">>, [Topic]) ->
 key_for_command(<<"PUBLISH">>, [Topic, _]) ->
     Topic;
 key_for_command(<<"DEL">>, [Key]) ->
-    Key.
+    Key;
+key_for_command(Cmd, Args) ->
+    {Cmd, Args}.
 
 send_to_one(Key, Cmd) ->
     DocIdx = riak_core_util:chash_key(Key),

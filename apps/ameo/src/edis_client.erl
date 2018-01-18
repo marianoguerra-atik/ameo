@@ -71,7 +71,6 @@ socket({socket_ready, Socket}, State) ->
   lager:info("New Client: ~p ~n", [PeerPort]),
   ok = inet:setopts(Socket, [{active, once}, {packet, line}, binary]),
   _ = erlang:process_flag(trap_exit, true), %% We want to know even if it stops normally
-  %{ok, CmdRunner} = edis_command_runner:start_link(Socket),
   CmdRunner = nil,
   {next_state, command_start, State#state{socket         = Socket,
                                           peerport       = PeerPort,
@@ -96,9 +95,8 @@ command_start({data, <<"*", N/binary>>}, State) -> %% Unified Request Protocol
 command_start({data, OldCmd}, State) ->
   [Command|Args] = binary:split(OldCmd, [<<" ">>, <<"\r\n">>], [global,trim]),
   lager:debug("Old protocol command ~p (~p args)~n",[Command, length(Args)]),
-  case edis_command_runner:last_arg(edis_util:upper(Command)) of
+  case last_arg(edis_util:upper(Command)) of
     inlined ->
-      %ok = edis_command_runner:run(State#state.command_runner, edis_util:upper(Command), Args),
       lager:info("Run Command: ~p ~p", [edis_util:upper(Command), Args]),
       {next_state, command_start, State, hibernate};
     safe ->
@@ -106,10 +104,7 @@ command_start({data, OldCmd}, State) ->
         [LastArg | FirstArgs] ->
           case string:to_integer(binary_to_list(LastArg)) of
             {error, no_integer} ->
-              ok = edis_command_runner:err(State#state.command_runner,
-                                           io_lib:format(
-                                             "lenght of last param expected for '~s'. ~s received instead",
-                                             [Command, LastArg])),
+              ok = err(State, io_lib:format("lenght of last param expected for '~s'. ~s received instead", [Command, LastArg])),
               {next_state, command_start, State, hibernate};
             {ArgSize, _Rest} ->
               {next_state, argument, State#state{command_name   = Command,
@@ -119,7 +114,6 @@ command_start({data, OldCmd}, State) ->
                                                  next_arg_size  = ArgSize}}
           end;
         [] ->
-          %ok = edis_command_runner:run(State#state.command_runner, edis_util:upper(Command), []),
           run_command(edis_util:upper(Command), [], State),
           {next_state, command_start, State, hibernate}
       end
@@ -133,9 +127,7 @@ command_start(Event, State) ->
 arg_size({data, <<"$", N/binary>>}, State) ->
   case string:to_integer(binary_to_list(N)) of
     {error, no_integer} ->
-      ok = edis_command_runner:err(State#state.command_runner,
-                                   io_lib:format(
-                                     "lenght of next arg expected. ~s received instead", [N])),
+      ok = err(State, io_lib:format("lenght of next arg expected. ~s received instead", [N])),
       {next_state, command_start, State, hibernate};
     {ArgSize, _Rest} ->
       lager:debug("Arg Size: ~p ~n", [ArgSize]),
@@ -153,7 +145,6 @@ arg_size(Event, State) ->
 command_name({data, Data}, State = #state{next_arg_size = Size, missing_args = 1}) ->
   <<Command:Size/binary, _Rest/binary>> = Data,
   lager:debug("Command: ~p ~n", [Command]),
-  %ok = edis_command_runner:run(State#state.command_runner, edis_util:upper(Command), []),
   run_command(edis_util:upper(Command), [], State),
   {next_state, command_start, State, hibernate};
 command_name({data, Data}, State = #state{next_arg_size = Size, missing_args = MissingArgs}) ->
@@ -172,9 +163,6 @@ argument({data, Data}, State = #state{buffer        = Buffer,
     <<Argument:Size/binary, _Rest/binary>> ->
       case State#state.missing_args of
         1 ->
-          %ok = edis_command_runner:run(State#state.command_runner,
-          %                             edis_util:upper(State#state.command_name),
-          %                             lists:reverse([Argument|State#state.args])),
           run_command(edis_util:upper(State#state.command_name),
                       lists:reverse([Argument|State#state.args]),
                       State),
@@ -226,13 +214,11 @@ handle_info(_Info, StateName, StateData) ->
 
 %% @hidden
 -spec terminate(term(), atom(), state()) -> ok.
-terminate(normal, _StateName, #state{socket = Socket, command_runner = CmdRunner}) ->
-  %edis_command_runner:stop(CmdRunner),
+terminate(normal, _StateName, #state{socket = Socket}) ->
   (catch gen_tcp:close(Socket)),
   ok;
-terminate(Reason, _StateName, #state{socket = Socket, command_runner = CmdRunner}) ->
+terminate(Reason, _StateName, #state{socket = Socket}) ->
   lager:warning("Terminating client: ~p~n", [Reason]),
-  %edis_command_runner:stop(CmdRunner),
   (catch gen_tcp:close(Socket)),
   ok.
 
@@ -280,3 +266,9 @@ send_error(V, State) ->
 
 send(Message, State) ->
     gen_tcp:send(State#state.socket, [Message, "\r\n"]).
+
+err(State, Message) ->
+    send_error(Message, State),
+    ok.
+
+last_arg(_) -> inlined.

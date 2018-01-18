@@ -148,7 +148,9 @@ run_cmd(<<"PUBLISH">>, [Topic, Value], _Pid,
                               ameo_channel:subscriber_count(Channel)
                       end,
     lager:info("Publish to topic ~p with ~p subscribers", [Topic, SubscriberCount]),
-    {ok, Partition, SubscriberCount}.
+    {ok, Partition, SubscriberCount};
+run_cmd(Cmd, Args, _Pid, #state{partition=Partition}) ->
+    {error, Partition, {unknown_command, "Unknown command", {Cmd, Args}}}.
 
 unsubscribe_pid(Pid, #state{topic_table=TableId}) ->
     % FIXME: ineficient yet easy solution
