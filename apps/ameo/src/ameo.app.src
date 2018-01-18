@@ -1,0 +1,16 @@
+%% -*- erlang -*-
+{application, ameo,
+ [
+  {description, "A Riak Core Application"},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib,
+                  sasl,
+                  riak_core,
+                  setup
+                 ]},
+  {mod, { ameo_app, []}},
+  {env, []}
+ ]}.
