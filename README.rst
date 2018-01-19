@@ -151,7 +151,7 @@ Riak Core Metadata
 
 Create some variables in all nodes you are going to run the calls:
 
-.. code: erlang
+.. code:: erlang
 
     FullPrefix = {<<"ameo">>, <<"config">>}.
     Key1 = key_1.
@@ -159,7 +159,7 @@ Create some variables in all nodes you are going to run the calls:
 
 Run each line on any node:
 
-.. code: erlang
+.. code:: erlang
 
     riak_core_metadata:get(FullPrefix, Key1).
     % undefined
@@ -184,7 +184,7 @@ Run each line on any node:
 
 Trace Metadata Calls:
 
-.. code: erlang
+.. code:: erlang
 
 	ReturnTrace = fun(_) -> return_trace() end.
 	% at most 1000 calls per second
@@ -199,7 +199,7 @@ Trace Metadata Calls:
 
 Clear the trace:
 
-.. code: erlang
+.. code:: erlang
 
 	recon_trace:clear().
 
