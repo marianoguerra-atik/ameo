@@ -11,7 +11,7 @@
 
 -behaviour(gen_fsm).
 
--export([start_link/0, set_socket/2]).
+-export([start_link/1, set_socket/2]).
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
 -export([socket/2, command_start/2, arg_size/2, command_name/2, argument/2]).
 -export([disconnect/1]).
@@ -27,7 +27,7 @@
                 command_name      :: undefined | binary(),
                 args = []         :: [binary()],
                 buffer = <<>>     :: binary(),
-                command_runner    :: undefined | pid()
+                command_runner    :: undefined | atom()
                }).
 -type state() :: #state{}.
 
@@ -36,9 +36,9 @@
 %% ====================================================================
 %% -- General ---------------------------------------------------------
 %% @doc Start the client
--spec start_link() -> {ok, pid()}.
-start_link() ->
-  gen_fsm:start_link(?MODULE, [], []).
+-spec start_link(map()) -> {ok, pid()}.
+start_link(Opts) ->
+  gen_fsm:start_link(?MODULE, Opts, []).
 
 %% @doc Associates the client with the socket
 -spec set_socket(pid(), port()) -> ok.
@@ -54,9 +54,10 @@ disconnect(Client) ->
 %% Server functions
 %% ====================================================================
 %% @hidden
--spec init([]) -> {ok, socket, state(), ?FSM_TIMEOUT}.
-init([]) ->
-  {ok, socket, #state{}, ?FSM_TIMEOUT}.
+-spec init(map()) -> {ok, socket, state(), ?FSM_TIMEOUT}.
+init(Opts=#{command_runner_mod := Mod}) ->
+  lager:info("start edis_client ~p", [Opts]),
+  {ok, socket, #state{command_runner=Mod}, ?FSM_TIMEOUT}.
 
 %% ASYNC EVENTS -------------------------------------------------------
 %% @hidden
@@ -71,10 +72,8 @@ socket({socket_ready, Socket}, State) ->
   lager:info("New Client: ~p ~n", [PeerPort]),
   ok = inet:setopts(Socket, [{active, once}, {packet, line}, binary]),
   _ = erlang:process_flag(trap_exit, true), %% We want to know even if it stops normally
-  CmdRunner = nil,
-  {next_state, command_start, State#state{socket         = Socket,
-                                          peerport       = PeerPort,
-                                          command_runner = CmdRunner}, hibernate};
+  {next_state, command_start, State#state{socket   = Socket,
+                                          peerport = PeerPort}, hibernate};
 socket(timeout, State) ->
   lager:alert("Timeout~n", []),
   {stop, timeout, State};
@@ -231,8 +230,8 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 
 run_command(<<"COMMAND">>, [], State) ->
     send("*0\r\n", State);
-run_command(Command, Args, State) ->
-    Reply = ameo:run_command(Command, Args),
+run_command(Command, Args, State=#state{command_runner=Mod}) ->
+    Reply = Mod:run_command(Command, Args),
     SendRes = case Reply of
         {ok, _Partition} ->
                       send_ok(State);

@@ -14,15 +14,15 @@
 
 -behaviour(supervisor).
 
--export([start_link/0, start_client/0, init/1, count_clients/0, reload/0]).
+-export([start_link/1, start_client/0, init/1, count_clients/0, reload/0]).
 
 %% ====================================================================
 %% External functions
 %% ====================================================================
 %% @doc  Starts the supervisor process
--spec start_link() -> ignore | {error, term()} | {ok, pid()}.
-start_link() ->
-  supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+-spec start_link(map()) -> ignore | {error, term()} | {ok, pid()}.
+start_link(Opts) ->
+  supervisor:start_link({local, ?MODULE}, ?MODULE, Opts).
 
 %% @doc  Starts a new client process
 -spec start_client() -> {ok, pid() | undefined} | {error, term()}.
@@ -55,12 +55,14 @@ count_clients() ->
 %% Server functions
 %% ====================================================================
 %% @hidden
--spec init([]) -> {ok, {{one_for_one, 5, 10}, [supervisor:child_spec()]}}.
-init([]) ->
+-spec init(map()) -> {ok, {{one_for_one, 5, 10}, [supervisor:child_spec()]}}.
+init(Opts) ->
   lager:info("Client supervisor initialized (~p managers)~n", [?MANAGERS]),
   Managers =
-    [{list_to_atom("edis-client-mgr-" ++ integer_to_list(I)),
-      {edis_client_mgr, start_link, [list_to_atom("edis-client-mgr-" ++ integer_to_list(I))]},
+    [{name(I), {edis_client_mgr, start_link, [Opts#{name => name(I)}]},
       permanent, brutal_kill, supervisor, [edis_client_mgr]}
      || I <- lists:seq(1, ?MANAGERS)],
   {ok, {{one_for_one, length(Managers), 1}, Managers}}.
+
+name(I) ->
+    list_to_atom("edis-client-mgr-" ++ integer_to_list(I)).

@@ -20,8 +20,8 @@
 %% ====================================================================
 %% @doc  Starts the supervisor process
 -spec start_link(atom()) -> ignore | {error, term()} | {ok, pid()}.
-start_link(Name) ->
-	supervisor:start_link({local, Name}, ?MODULE, []).
+start_link(Opts=#{name := Name}) ->
+	supervisor:start_link({local, Name}, ?MODULE, Opts).
 
 %% @doc  Starts a new client process
 -spec start_client() -> {ok, pid() | undefined} | {error, term()}.
@@ -32,8 +32,9 @@ start_client() ->
 %% Server functions
 %% ====================================================================
 %% @hidden
--spec init([]) -> {ok, {{simple_one_for_one, 100, 1}, [supervisor:child_spec()]}}.
-init([]) ->
+-spec init(map()) ->
+    {ok, {{simple_one_for_one, 100, 1}, [supervisor:child_spec()]}}.
+init(Opts) ->
   {ok, {{simple_one_for_one, 100, 1},
-        [{edis_client, {edis_client, start_link, []},
+        [{edis_client, {edis_client, start_link, [Opts]},
           temporary, brutal_kill, worker, [edis_client]}]}}.

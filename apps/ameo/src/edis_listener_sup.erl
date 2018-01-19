@@ -13,15 +13,15 @@
 
 -behaviour(supervisor).
 
--export([start_link/0, init/1, reload/0]).
+-export([start_link/1, init/1, reload/0]).
 
 %% ====================================================================
 %% External functions
 %% ====================================================================
 %% @doc  Starts the supervisor process
--spec start_link() -> ignore | {error, term()} | {ok, pid()}.
-start_link() ->
-  supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+-spec start_link(map()) -> ignore | {error, term()} | {ok, pid()}.
+start_link(Opts) ->
+  supervisor:start_link({local, ?MODULE}, ?MODULE, Opts).
 
 %% @doc  Reloads configuration. Restarts the listeners
 -spec reload() -> ok.
@@ -33,11 +33,11 @@ reload() ->
 %% Server functions
 %% ====================================================================
 %% @hidden
--spec init([]) -> {ok, {{one_for_one, 5, 10}, [supervisor:child_spec()]}}.
-init([]) ->
-  lager:info("Listener supervisor initialized~n", []),
-  MinPort = application:get_env(ameo, port_from, 6379),
-  MaxPort = application:get_env(ameo, port_to, 6379),
+-spec init(map()) -> {ok, {{one_for_one, 5, 10}, [supervisor:child_spec()]}}.
+init(Opts) ->
+  lager:info("Listener supervisor initialized"),
+  MinPort = maps:get(port_from, Opts, 6379),
+  MaxPort = maps:get(port_to, Opts, 6379),
   Listeners =
     [{list_to_atom("edis-listener-" ++ integer_to_list(I)),
       {edis_listener, start_link, [I]}, permanent, brutal_kill, worker, [edis_listener]}
