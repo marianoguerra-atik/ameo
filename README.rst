@@ -49,7 +49,8 @@ In the cluster::
 
 Demo:
 
-[![asciicast](https://asciinema.org/a/g5cA2D0qtRsdvUEq4cRptw4hx.png)](https://asciinema.org/a/g5cA2D0qtRsdvUEq4cRptw4hx)
+.. image:: https://asciinema.org/a/g5cA2D0qtRsdvUEq4cRptw4hx.png
+   :target: https://asciinema.org/a/g5cA2D0qtRsdvUEq4cRptw4hx
 
 Build
 -----
