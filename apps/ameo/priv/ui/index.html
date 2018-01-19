@@ -3,38 +3,54 @@
     <head>
         <meta charset="utf-8">
         <title>eameo</title>
+        <link rel="stylesheet" href="./ui/bootstrap.min.css"/>
+        <script src="./ui/vue.min.js"></script>
+        <style>#app{margin: 3em 10%; width: 80%}</style>
     </head>
     <body>
-        <h1>Open Developer tools</h1>
-        <p>Run this in the Browser Dev console</p>
-        <pre>
-        $ameo.subscribe("topic1");
-        </pre>
+        <div id="app">
+            <div>
+                <div class="form-group">
+                    <label for="topic-id">Topic</label>
+                    <input type="text"
+                           class="form-control"
+                           id="topic-id"
+                           v-on:keyup.13="subscribeClicked"
+                           v-model="inputTopic">
+                </div>
 
-        <p>Run this in a shell</p>
-        <pre>
-        redis-cli publish topic1 "hi there"
-        </pre>
+                <div style="text-align: center">
+                    <button class="btn btn-sm btn-primary"
+                            v-on:click="subscribeClicked">Subscribe</button>
+                    <button class="btn btn-sm btn-success"
+                            v-on:click="pingClicked">Ping</button>
+                </div>
+            </div>
 
-        <p>You should see a message arriving in the Dev console</p>
+            <table class="table table-sm" style="margin-top: 1em">
+                <tbody>
+                    <tr v-for="(topic, i) in topics">
+                        <td>{{topic}}</td>
+                        <td>
+                            <button class="btn btn-sm btn-danger"
+                                    v-on:click="unsubscribeClicked(topic, i)">
+                                Unsubscribe
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
 
-        <p>Run this in the Browser Dev console</p>
-        <pre>
-        $ameo.unsubscribe("topic1");
-        </pre>
-
-        <p>Run this in a shell</p>
-        <pre>
-        redis-cli publish topic1 "hi there, again"
-        </pre>
-
-        <p>You should <strong>NOT</strong> see a message arriving in the Dev console</p>
-
-        <p>You can also ping the server</p>
-        <pre>
-        $ameo.ping();
-        </pre>
-
+            <table class="table table-sm">
+                <tbody>
+                    <tr v-for="item in updates">
+                        <td>{{item.time}}</td>
+                        <td>{{item.type}}</td>
+                        <td>{{item.details}}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
         <script src="./ui/app.js"></script>
     </body>
 </html>

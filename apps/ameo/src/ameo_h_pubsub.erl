@@ -40,7 +40,10 @@ websocket_info({'EXIT', _Pid, _Reason}, State) ->
     {ok, State};
 websocket_info({pubsub_msg, Msg}, State) ->
     Resp = jsx:encode(#{t => 'msg', data => Msg}),
-    {reply, {text, Resp}, State}.
+    {reply, {text, Resp}, State};
+websocket_info(Info, State) ->
+    lager:info("ws got info: ~p", [Info]),
+    {ok, State}.
 
 %% private
 subscribe(Topic) when is_binary(Topic) ->
