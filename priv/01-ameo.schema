@@ -16,7 +16,7 @@
 %% @doc port to listen to for HTTP API
 {mapping, "http.port", "ameo.http_port", [
   {datatype, integer},
-  {default, 8080}
+  {default, {{web_port}}}
 ]}.
 
 %% @doc number of acceptors to user for HTTP API
