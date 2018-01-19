@@ -35,7 +35,10 @@ Try
     {pong,753586781748746817198774991869333432010090217472}
 
 Open http//localhost:8080/ (or change the port if running cluster nodes in
-devrel) and follow the instructions there
+devrel) and follow the instructions there.
+
+You can open one tab on each node (8198, 8298, 8398) and see the messages
+appear on each.
 
 Use the redis client to interact with ameo::
 
