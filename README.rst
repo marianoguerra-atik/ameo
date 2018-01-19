@@ -47,6 +47,10 @@ In the cluster::
 
     redis-cli publish bar hi
 
+Demo:
+
+[![asciicast](https://asciinema.org/a/g5cA2D0qtRsdvUEq4cRptw4hx.png)](https://asciinema.org/a/g5cA2D0qtRsdvUEq4cRptw4hx)
+
 Build
 -----
 
