@@ -64,10 +64,10 @@ Use the redis client to interact with ameo::
 
 Publish subscribe::
 
-    redis-cli subscribe bar
+    redis-cli subscribe topic1
     > Reading messages... (press Ctrl-C to quit)
 
-    redis-cli publish bar asd
+    redis-cli publish topic1 asd
     > (integer) 1
 
 On the subscribe shell::
@@ -76,12 +76,17 @@ On the subscribe shell::
 
 In the cluster::
 
-    redis-cli -p 6479 subscribe bar
+    redis-cli -p 6479 subscribe topic1
 
-    redis-cli -p 6579 subscribe bar
+    redis-cli -p 6579 subscribe topic1
 
-    redis-cli publish bar hi
+    redis-cli -p 6379 publish topic1 "hello topic1 from 6379"
+    redis-cli -p 6479 publish topic1 "hello topic1 from 6479"
+    redis-cli -p 6579 publish topic1 "hello topic1 from 6579"
 
+    redis-cli -p 6379 publish topic2 "hello topic2 from 6379"
+    redis-cli -p 6479 publish topic2 "hello topic2 from 6479"
+    redis-cli -p 6579 publish topic2 "hello topic2 from 6579"
 
 Quit
 ----
