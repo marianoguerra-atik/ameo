@@ -1,14 +1,33 @@
 %%-*- mode: erlang -*-
 %% ex: ft=erlang ts=4 sw=4 et
 
-%% @doc base port to listen to
+%% @doc Redis protocol base port to listen for
 {mapping, "ameo.port.from", "ameo.port_from", [
   {datatype, integer},
   {default, {{redis_port_from}}}
 ]}.
 
-%% @doc top port to listen to
+%% @doc Redis protocol top port to listen to
 {mapping, "ameo.port.to", "ameo.port_to", [
   {datatype, integer},
   {default, {{redis_port_to}}}
 ]}.
+
+%% @doc port to listen to for HTTP API
+{mapping, "http.port", "ameo.http_port", [
+  {datatype, integer},
+  {default, 8080}
+]}.
+
+%% @doc number of acceptors to user for HTTP API
+{mapping, "http.acceptors", "ameo.http_acceptors", [
+  {datatype, integer},
+  {default, 100}
+]}.
+
+%% @doc max number of connections for HTTP API
+{mapping, "http.connections.max", "ameo.http_max_connections", [
+  {datatype, integer},
+  {default, 100000}
+]}.
+

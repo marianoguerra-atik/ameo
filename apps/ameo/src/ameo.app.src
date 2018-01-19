@@ -9,6 +9,9 @@
                   stdlib,
                   sasl,
                   riak_core,
+                  cowboy,
+                  recon,
+                  jsx,
                   setup
                  ]},
   {mod, { ameo_app, []}},

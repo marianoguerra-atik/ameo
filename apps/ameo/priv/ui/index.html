@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>eameo</title>
+    </head>
+    <body>
+        <h1>Open Developer tools</h1>
+        <p>Run this in the Browser Dev console</p>
+        <pre>
+        $ameo.subscribe("topic1");
+        </pre>
+
+        <p>Run this in a shell</p>
+        <pre>
+        redis-cli publish topic1 "hi there"
+        </pre>
+
+        <p>You should see a message arriving in the Dev console</p>
+
+        <p>Run this in the Browser Dev console</p>
+        <pre>
+        $ameo.unsubscribe("topic1");
+        </pre>
+
+        <p>Run this in a shell</p>
+        <pre>
+        redis-cli publish topic1 "hi there, again"
+        </pre>
+
+        <p>You should <strong>NOT</strong> see a message arriving in the Dev console</p>
+
+        <p>You can also ping the server</p>
+        <pre>
+        $ameo.ping();
+        </pre>
+
+        <script src="./ui/app.js"></script>
+    </body>
+</html>

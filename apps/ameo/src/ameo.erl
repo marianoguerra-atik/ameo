@@ -27,6 +27,8 @@ key_for_command(<<"GET">>, [Key]) ->
     Key;
 key_for_command(<<"SUBSCRIBE">>, [Topic]) ->
     Topic;
+key_for_command(<<"UNSUBSCRIBE">>, [Topic]) ->
+    Topic;
 key_for_command(<<"PUBLISH">>, [Topic, _]) ->
     Topic;
 key_for_command(<<"DEL">>, [Key]) ->

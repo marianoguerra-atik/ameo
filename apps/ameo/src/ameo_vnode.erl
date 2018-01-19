@@ -124,26 +124,25 @@ run_cmd(<<"DEL">>, [Key], _Pid,
             true = ets:delete(TableId, Key),
             {ok, Partition, 1}
     end;
-run_cmd(<<"SUBSCRIBE">>, [Topic], Pid, #state{topic_table=TableId}) ->
-	Channel = case ets:lookup(TableId, Topic) of
-				  [] ->
-					  {ok, Ch} = ameo_channel:start_link(),
-                      ets:insert(TableId, {Topic, Ch}),
-                      lager:info("New channel for topic ~p ~p", [Topic, Ch]),
-					  Ch;
-				  [{_, Ch}] ->
-					  Ch
-			  end,
+run_cmd(<<"SUBSCRIBE">>, [Topic], Pid, State=#state{partition=Partition}) ->
+	Channel = get_or_create_channel(Topic, State),
     lager:info("Subscribe ~p ~p", [Topic, Pid]),
     erlang:monitor(process, Pid),
     ameo_channel:subscribe(Channel, Pid),
     no_reply;
+run_cmd(<<"UNSUBSCRIBE">>, [Topic], Pid, State=#state{partition=Partition}) ->
+    case get_existing_channel(Topic, State) of
+        nil ->
+            {error, Partition, {not_subscribed, "Not Subscribed", Topic}};
+        Channel ->
+            ameo_channel:unsubscribe(Channel, Pid),
+            {ok, Partition}
+    end;
 run_cmd(<<"PUBLISH">>, [Topic, Value], _Pid,
-        #state{topic_table=TableId, partition=Partition}) ->
-    SubscriberCount = case ets:lookup(TableId, Topic) of
-                          [] ->
-                              0;
-                          [{_, Channel}] ->
+        State=#state{partition=Partition}) ->
+    SubscriberCount = case get_existing_channel(Topic, State) of
+                          nil -> 0;
+                          Channel ->
                               ameo_channel:send(Channel, {pubsub_msg, Value}),
                               ameo_channel:subscriber_count(Channel)
                       end,
@@ -161,3 +160,20 @@ unsubscribe_pid(Pid, #state{topic_table=TableId}) ->
               end,
               unused_accum_state,
               TableId).
+
+get_existing_channel(Topic, State=#state{table_id=TableId}) ->
+    case ets:lookup(TableId, Topic) of
+        [] -> nil;
+        [{_, Channel}] -> Channel
+    end.
+
+get_or_create_channel(Topic, State=#state{table_id=TableId}) ->
+    case get_existing_channel(Topic, State) of
+        nil ->
+            {ok, Channel} = ameo_channel:start_link(),
+            ets:insert(TableId, {Topic, Channel}),
+            lager:info("New channel for topic ~p ~p", [Topic, Channel]),
+            Channel;
+        Channel ->
+            Channel
+    end.
