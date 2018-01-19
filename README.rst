@@ -34,11 +34,13 @@ Try
     1> ameo:ping().
     {pong,753586781748746817198774991869333432010090217472}
 
-Open http//localhost:8080/ (or change the port if running cluster nodes in
-devrel) and follow the instructions there.
+Open http://localhost:8080/ if running one node.
 
-You can open one tab on each node (8198, 8298, 8398) and see the messages
-appear on each.
+If using clustering with devrel open one or more of the following:
+
+* http://localhost:8198/
+* http://localhost:8298/
+* http://localhost:8398/
 
 Use the redis client to interact with ameo::
 
