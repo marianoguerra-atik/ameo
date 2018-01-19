@@ -161,13 +161,13 @@ unsubscribe_pid(Pid, #state{topic_table=TableId}) ->
               unused_accum_state,
               TableId).
 
-get_existing_channel(Topic, #state{table_id=TableId}) ->
+get_existing_channel(Topic, #state{topic_table=TableId}) ->
     case ets:lookup(TableId, Topic) of
         [] -> nil;
         [{_, Channel}] -> Channel
     end.
 
-get_or_create_channel(Topic, State=#state{table_id=TableId}) ->
+get_or_create_channel(Topic, State=#state{topic_table=TableId}) ->
     case get_existing_channel(Topic, State) of
         nil ->
             {ok, Channel} = ameo_channel:start_link(),
