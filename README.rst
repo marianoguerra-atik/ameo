@@ -52,21 +52,14 @@ Build
 
 ::
 
-    rebar3 release
-
-Test
-----
-
-::
-
-    rebar3 ct
+    make release
 
 Run
 ---
 
 ::
 
-    rebar3 run
+    make console
 
 Try
 ---
@@ -158,7 +151,7 @@ Riak Core Metadata
 
 Create some variables in all nodes you are going to run the calls:
 
-.. code-block:: erlang
+.. code-block: erlang
 
     FullPrefix = {<<"ameo">>, <<"config">>}.
     Key1 = key_1.
@@ -166,7 +159,7 @@ Create some variables in all nodes you are going to run the calls:
 
 Run each line on any node:
 
-.. code-block:: erlang
+.. code-block: erlang
 
     riak_core_metadata:get(FullPrefix, Key1).
     % undefined
@@ -191,7 +184,7 @@ Run each line on any node:
 
 Trace Metadata Calls:
 
-.. code-block:: erlang
+.. code-block: erlang
 
 	ReturnTrace = fun(_) -> return_trace() end.
 	% at most 1000 calls per second
@@ -206,7 +199,7 @@ Trace Metadata Calls:
 
 Clear the trace:
 
-.. code-block:: erlang
+.. code-block: erlang
 
 	recon_trace:clear().
 
