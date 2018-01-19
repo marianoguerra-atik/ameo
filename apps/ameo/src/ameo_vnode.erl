@@ -124,7 +124,7 @@ run_cmd(<<"DEL">>, [Key], _Pid,
             true = ets:delete(TableId, Key),
             {ok, Partition, 1}
     end;
-run_cmd(<<"SUBSCRIBE">>, [Topic], Pid, State=#state{partition=Partition}) ->
+run_cmd(<<"SUBSCRIBE">>, [Topic], Pid, State) ->
 	Channel = get_or_create_channel(Topic, State),
     lager:info("Subscribe ~p ~p", [Topic, Pid]),
     erlang:monitor(process, Pid),
@@ -161,7 +161,7 @@ unsubscribe_pid(Pid, #state{topic_table=TableId}) ->
               unused_accum_state,
               TableId).
 
-get_existing_channel(Topic, State=#state{table_id=TableId}) ->
+get_existing_channel(Topic, #state{table_id=TableId}) ->
     case ets:lookup(TableId, Topic) of
         [] -> nil;
         [{_, Channel}] -> Channel
