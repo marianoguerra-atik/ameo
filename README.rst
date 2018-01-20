@@ -1,16 +1,15 @@
 ameo
 ====
 
-A riak_core application
+a Redis compatible, distributed in-memory key-value store and pubsub server
+implemented using riak_core that exposes the topics via WebSockets.
 
-::
-
-    apt install redis-tools
+Read more about it here: http://marianoguerra.org/posts/ameo-redis-compatible-getsetdel-and-publishsubscribe-on-riak_core-with-websocket-api/
 
 Demo:
 
-.. image:: https://asciinema.org/a/g5cA2D0qtRsdvUEq4cRptw4hx.png
-   :target: https://asciinema.org/a/g5cA2D0qtRsdvUEq4cRptw4hx
+.. image:: https://img.youtube.com/vi/m5NbpmvyQQY/0.jpg)
+   :target: https://www.youtube.com/watch?v=m5NbpmvyQQY
 
 Build
 -----
@@ -29,11 +28,6 @@ Run
 Try
 ---
 
-::
-
-    1> ameo:ping().
-    {pong,753586781748746817198774991869333432010090217472}
-
 Open http://localhost:8080/ if running one node.
 
 If using clustering with devrel open one or more of the following:
@@ -41,6 +35,10 @@ If using clustering with devrel open one or more of the following:
 * http://localhost:8198/
 * http://localhost:8298/
 * http://localhost:8398/
+
+Install redis-tools::
+
+    apt install redis-tools
 
 Use the redis client to interact with ameo::
 

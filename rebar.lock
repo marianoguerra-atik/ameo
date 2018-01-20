@@ -9,7 +9,7 @@
  {<<"cuttlefish">>,{pkg,<<"cuttlefish">>,<<"2.0.12">>},1},
  {<<"edis_proto">>,
   {git,"https://github.com/marianoguerra/edis_proto",
-       {ref,"783ebf73cef1213d45161503904758941c5744e9"}},
+       {ref,"965dcb8ed21f4da8825a44da642518d9088fe618"}},
   0},
  {<<"edown">>,{pkg,<<"edown">>,<<"0.8.1">>},3},
  {<<"eleveldb">>,{pkg,<<"eleveldb">>,<<"2.2.20">>},1},
