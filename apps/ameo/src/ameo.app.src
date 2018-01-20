@@ -12,7 +12,8 @@
                   cowboy,
                   recon,
                   jsx,
-                  setup
+                  setup,
+                  edis_proto
                  ]},
   {mod, { ameo_app, []}},
   {env, []}
