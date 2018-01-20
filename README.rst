@@ -8,7 +8,7 @@ Read more about it here: http://marianoguerra.org/posts/ameo-redis-compatible-ge
 
 Demo:
 
-.. image:: https://img.youtube.com/vi/m5NbpmvyQQY/0.jpg)
+.. image:: https://img.youtube.com/vi/m5NbpmvyQQY/0.jpg
    :target: https://www.youtube.com/watch?v=m5NbpmvyQQY
 
 Build
